@@ -1,0 +1,158 @@
+import sys
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QComboBox, QPushButton, QItemDelegate, QMessageBox
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor, QPalette
+import requests
+
+
+class ReadOnlyDelegate(QItemDelegate):
+    def createEditor(self, parent, option, index):
+        return None
+
+
+class DashboardApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.Initialize_Variables()
+        self.setWindowTitle('Dashboard')
+        self.setGeometry(100, 100, self.WINDOW_WIDTH, self.WINDOW_HEIGHT)
+        central_widget = QWidget(self)
+        self.setCentralWidget(central_widget)
+        self.layout = QVBoxLayout()
+        self.Create_Table()
+    
+    def Initialize_Variables(self):
+        # =========== Statuses (START) ============
+        self._INVALID = "INVALID"
+        self._NOT_YET_STARTED = "NOT YET STARTED"
+        self._IN_PROGRESS = "IN PROGRESS"
+        self._COMPLETE = "COMPLETE"
+        # =========== Statuses (END) ============
+        # =========== Dimensions (START) ============
+        self.WINDOW_WIDTH = 2400
+        self.WINDOW_HEIGHT = 1200
+        self.DEFAULT_TABLE_COLUMN_WIDTH = 280
+        # =========== Dimensions (END) ============
+    
+    def Create_Table(self):
+        self.table_widget = QTableWidget(self)
+        self.table_widget.setColumnCount(10)
+        self.table_widget.setHorizontalHeaderLabels(["Header 1", "Header 2", "Header 3", "Header 4", "Header 5", "Header 6", "Header 7", "Header 8", "Header 9", "Header 10"])
+        self.table_widget.horizontalHeader().setStretchLastSection(True)
+        self.table_widget.setFixedWidth(self.WINDOW_WIDTH)
+        self.table_widget.setFixedHeight(self.WINDOW_HEIGHT - 100)
+        self.table_widget.setColumnWidth(0, int(self.DEFAULT_TABLE_COLUMN_WIDTH / 2))
+        self.table_widget.setColumnWidth(1, self.DEFAULT_TABLE_COLUMN_WIDTH)
+        self.table_widget.setColumnWidth(2, self.DEFAULT_TABLE_COLUMN_WIDTH)
+        self.table_widget.setColumnWidth(3, self.DEFAULT_TABLE_COLUMN_WIDTH)
+        self.table_widget.setColumnWidth(4, self.DEFAULT_TABLE_COLUMN_WIDTH)
+        self.table_widget.setColumnWidth(5, self.DEFAULT_TABLE_COLUMN_WIDTH)
+        self.table_widget.setColumnWidth(6, self.DEFAULT_TABLE_COLUMN_WIDTH)
+        self.table_widget.setColumnWidth(7, int(self.DEFAULT_TABLE_COLUMN_WIDTH / 2))
+        self.table_widget.setColumnWidth(8, int(self.DEFAULT_TABLE_COLUMN_WIDTH * 1.5))
+        self.table_widget.setColumnWidth(9, self.DEFAULT_TABLE_COLUMN_WIDTH)
+        self.table_widget.setColumnWidth(10, self.DEFAULT_TABLE_COLUMN_WIDTH)
+        data = self.Get_Client_Data()
+        self.table_widget.setRowCount(len(data))
+        for idx, row in enumerate(data):
+            # =========== QTableWidgetItems (START) ============
+            header1 = QTableWidgetItem(str(row['header1']))
+            header2 = QTableWidgetItem(str(row['header2']))
+            header3 = QTableWidgetItem(str(row['header3']))
+            header4 = QTableWidgetItem(str(row['header4']))
+            header5 = QTableWidgetItem(str(row['header5']))
+            header6 = QTableWidgetItem(str(row['header6']))
+            header7 = QTableWidgetItem(str(row['header7']))
+            header8 = QComboBox()
+            options = [self._INVALID, self._NOT_YET_STARTED, self._IN_PROGRESS, self._COMPLETE]
+            status.addItems(options)
+            status.setCurrentIndex(options.index(row['header7'))
+            update_btn = QPushButton("Update")
+            update_btn.clicked.connect(lambda _, row_id=idx: self.Update_Server(row_id))
+            # =========== QTableWidgetItems (END) ============
+            # =========== Disable Edit (START) ============
+            readonly_delegate = ReadOnlyDelegate(self.table_widget)
+            self.table_widget.setItemDelegateForColumn(0, readonly_delegate)
+            self.table_widget.setItemDelegateForColumn(1, readonly_delegate)
+            self.table_widget.setItemDelegateForColumn(2, readonly_delegate)
+            self.table_widget.setItemDelegateForColumn(3, readonly_delegate)
+            self.table_widget.setItemDelegateForColumn(6, readonly_delegate)
+            self.table_widget.setItemDelegateForColumn(7, readonly_delegate)
+            # =========== Disable Edit (END) ============
+            self.table_widget.setItem(idx, 0, header0)
+            self.table_widget.setItem(idx, 1, header1)
+            self.table_widget.setItem(idx, 2, header2)
+            self.table_widget.setItem(idx, 3, header3)
+            self.table_widget.setItem(idx, 6, header6)
+            self.table_widget.setItem(idx, 7, header7)
+            self.table_widget.setItem(idx, 8, header8)
+            self.table_widget.setCellWidget(idx, 9, update_btn)
+        self.layout.addWidget(self.table_widget)
+    
+    def Update_Server(self, row_id):
+        curr_status = self.table_widget.cellWidget(row_id, 8).currentText()
+        if curr_status == self._COMPLETE:
+            header5 = self.table_widget.item(row_id, 4)
+            if header5:
+                header5 = header5.text()
+            else:
+                return
+            data = dict()
+            data['header1'] = self.table_widget.item(row_id, 0).text()
+            url = "api endpoint"
+            response = requests.post(url, data=data)
+            if response.status_code == 200:
+                self.Alert_Error()
+                return
+            else:
+                self.Alert_Error()
+                return
+        elif curr_status == self._INVALID:
+            # .. (abridged)
+            return
+        elif curr_status == self._IN_PROGRESS:
+            return
+    
+    def Get_Client_Data(self):
+        url = 'api endpoint'
+        response = requests.get(url)
+        client_data = list()
+        if response.status_code == 200:
+            for res in response.json():
+                ldict = dict()
+                ldict['header1'] = res['header1']
+                ldict['header2'] = res['header2']
+                ldict['header3'] = res['header3']
+                ldict['header4'] = res['header4']
+                ldict['header5'] = res['header5']
+                ldict['header6'] = res['header6']
+                ldict['header7'] = res['header7']
+                client_data.append(ldict)
+        return client_data
+    
+    def Alert_Success(self):
+        alert = QMessageBox()
+        alert.setWindowTitle("Success")
+        alert.setText("Operation has been successful.")
+        alert.setIcon(QMessageBox.Information)
+        alert.addButton(QMessageBox.Ok)
+        alert.exec_()
+    
+    def Alert_Error(self):
+        alert = QMessageBox()
+        alert.setWindowTitle("Error")
+        alert.setText("Error occurred.")
+        alert.setIcon(QMessageBox.Critical)
+        alert.addButton(QMessageBox.Ok)
+        alert.exec_()
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    palette = QPalette()
+    palette.setColor(QPalette.Highlight, QColor(200, 220, 235))
+    palette.setColor(QPalette.HighlightedText, Qt.black)
+    app.setPalette(palette)
+    window = DashboardApp()
+    window.show()
+    sys.exit(app.exec_())
